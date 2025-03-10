@@ -47,6 +47,18 @@ export const createIndexDBAdapter = <T extends BaseRecord>(
     });
   };
 
+  const getOne = async (id: string): Promise<T | undefined> => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(storeName, 'readonly');
+      const store = transaction.objectStore(storeName);
+      const request = store.get(id);
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(new Error(request.error?.message));
+    });
+  };
+
   const save = async ({ added, modified, removed }: Changeset<T>): Promise<void> => {
     const database = await openDB();
     const transaction = database.transaction(storeName, 'readwrite');
@@ -67,5 +79,6 @@ export const createIndexDBAdapter = <T extends BaseRecord>(
   return {
     getAll,
     save,
+    getOne,
   };
 };

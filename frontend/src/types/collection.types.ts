@@ -7,15 +7,16 @@ export type CollectionEventData<T> = {
   'persistence.error': Error;
 };
 
-export type Changeset<T> = {
+export type Changeset<T extends BaseRecord = BaseRecord> = {
   added: T[];
   modified: T[];
   removed: T[];
 };
 
-export type PersistenceAdapter<T> = {
+export type PersistenceAdapter<T extends BaseRecord = BaseRecord> = {
   getAll: () => Promise<T[]>;
   save: (changeset: Changeset<T>) => Promise<void>;
+  getOne: (id: string) => Promise<T | undefined>;
 };
 
 export type CollectionListeners<T> = {

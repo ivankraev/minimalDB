@@ -8,7 +8,7 @@ import {
 } from 'src/types/collection.types';
 import { createIndexDBAdapter } from './indexDB';
 
-export class Collection<T extends BaseRecord> {
+export class Collection<T extends BaseRecord = BaseRecord> {
   private db: PersistenceAdapter<T>;
   private listeners: CollectionListeners<T> = {
     inserted: new Set(),
@@ -60,9 +60,10 @@ export class Collection<T extends BaseRecord> {
   };
 
   async update(data: Partial<T>) {
+    if (!data.id) return;
+
     try {
-      const records = await this.db.getAll();
-      const existingRecord = records.find((r) => r.id === data.id);
+      const existingRecord = await this.db.getOne(data.id);
       if (!existingRecord) throw new Error(`Record with ID ${data.id} not found`);
 
       const updatedRecord = {
@@ -82,8 +83,7 @@ export class Collection<T extends BaseRecord> {
 
   async remove(id: string) {
     try {
-      const records = await this.db.getAll();
-      const item = records.find((i) => i.id === id);
+      const item = await this.db.getOne(id);
       if (!item) return;
 
       const changeset: Changeset<T> = { added: [], modified: [], removed: [item] };
@@ -97,8 +97,7 @@ export class Collection<T extends BaseRecord> {
 
   async get(id: string): Promise<T | undefined> {
     try {
-      const records = await this.db.getAll();
-      return records.find((item) => item.id === id);
+      return this.db.getOne(id);
     } catch (error) {
       this.emit('persistence.error', error as Error);
     }
