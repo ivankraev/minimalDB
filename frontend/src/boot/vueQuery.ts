@@ -5,4 +5,3 @@ export default defineBoot(({ app }) => {
   const queryClient = new QueryClient();
   app.use(VueQueryPlugin, { queryClient });
 });
-//

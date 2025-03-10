@@ -1,40 +1,55 @@
 import { ref, computed } from 'vue';
-import { useQueryClient } from '@tanstack/vue-query';
 
-import { type Changeset, IndexDBHelper } from './indexDB';
 import { socket } from 'src/boot/socket';
+import { Collection } from './collection';
+import { type BaseRecord } from 'src/types/collection.types';
 
-export class BaseStore<T extends { id: string; createdAt?: string; updatedAt?: string }> {
+export class BaseStore<T extends BaseRecord> {
   private entity: string;
-  private db: IndexDBHelper<T>;
-  private queryClient = useQueryClient();
   private recordsRef = ref<T[]>([]);
   private initialized = ref(false);
+  private collection: Collection<T>;
 
   constructor(entity: string) {
     this.entity = entity;
-    this.db = new IndexDBHelper<T>(entity);
+    this.collection = new Collection<T>(entity);
     this.init();
   }
 
   private async init() {
-    if (this.initialized.value) return;
-    this.initialized.value = true;
-
-    const localData = await this.db.getAll();
-
-    if (localData.length) {
-      this.recordsRef.value = localData;
+    if (this.initialized.value) {
+      console.warn('Store already initialized');
+      return;
     }
-
-    this.setupWebSocket();
+    this.initialized.value = true;
+    this.recordsRef.value = await this.collection.getAll();
+    this.registerEvents();
+    this.setupSocket();
   }
 
-  private setupWebSocket() {
-    socket.on(`sync-${this.entity}`, async (items: Changeset<T>) => {
-      await this.db.save(items);
-      this.queryClient.invalidateQueries({ queryKey: [this.entity] });
+  private registerEvents() {
+    this.collection.on('inserted', (record) => {
+      // @ts-expect-error
+      this.recordsRef.value.push(record);
     });
+
+    this.collection.on('updated', (updatedRecord) => {
+      const index = this.recordsRef.value.findIndex((r) => r.id === updatedRecord.id);
+      // @ts-expect-error
+      if (index !== -1) this.recordsRef.value[index] = updatedRecord;
+    });
+
+    this.collection.on('removed', (removedRecord) => {
+      this.recordsRef.value = this.recordsRef.value.filter((r) => r.id !== removedRecord.id);
+    });
+
+    this.collection.on('persistence.error', (error) => {
+      console.error(error);
+    });
+  }
+
+  private setupSocket() {
+    socket.on(`sync-${this.entity}`, this.collection.registerRemoteChange);
   }
 
   public listRecords() {
@@ -42,43 +57,23 @@ export class BaseStore<T extends { id: string; createdAt?: string; updatedAt?: s
   }
 
   public async save(record: Partial<T>) {
-    let isNew = false;
-
     if (!record.id) {
-      record.createdAt = new Date().toISOString();
-      record.id = crypto.randomUUID();
-      isNew = true;
-    }
-
-    const existingIndex = this.recordsRef.value.findIndex((r) => r.id === record.id);
-
-    const changeset: Changeset<T> = {
-      added: [],
-      modified: [],
-      removed: [],
-    };
-
-    if (isNew || existingIndex < 0) {
-      changeset.added = [record as T];
-      this.recordsRef.value = [...this.recordsRef.value, record] as T[];
+      this.collection.insert(record);
     } else {
-      const updatedRecord = { ...this.recordsRef.value[existingIndex], ...record } as T;
-      changeset.modified = [updatedRecord];
-      const cloned = [...this.recordsRef.value] as T[];
-      cloned.splice(existingIndex, 1, updatedRecord);
-      this.recordsRef.value = cloned;
+      this.collection.update(record);
     }
-
-    await this.db.save(changeset);
   }
 
-  public async delete(id: string) {}
+  public async delete(id: string) {
+    return this.collection.remove(id);
+  }
 
   public async filterRecords() {
     return [];
   }
 
   public destroy() {
-    socket.off(`sync-${this.entity}`);
+    socket.off(`sync-${this.entity}`, this.collection.registerRemoteChange);
+    this.collection.cleanup();
   }
 }

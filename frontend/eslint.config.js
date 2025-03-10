@@ -67,6 +67,7 @@ export default defineConfigWithVueTs(
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/ban-ts-comment': 'off',
       // allow debugger during development only
       'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
     },
