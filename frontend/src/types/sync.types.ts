@@ -33,11 +33,11 @@ export interface LoadResponse<T extends BaseRecord = BaseRecord> {
 
 export type PendingChangeType = Mutation | 'noop';
 
-export type PendingChange = {
+export type PendingChange<T extends BaseRecord = BaseRecord> = {
   id: string;
   name: string;
   type: PendingChangeType;
-  data: BaseRecord;
+  data: T;
   time: number;
 };
 

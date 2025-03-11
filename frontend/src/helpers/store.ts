@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 
 import { Collection } from './collection';
 import { type BaseRecord } from 'src/types/collection.types';
+import syncStore from 'src/stores/sync.store';
 
 export class BaseStore<T extends BaseRecord> {
   private recordsRef = ref<T[]>([]);
@@ -10,6 +11,8 @@ export class BaseStore<T extends BaseRecord> {
 
   constructor(entity: string) {
     this.collection = new Collection<T>(entity);
+    syncStore.addCollection(entity, this.collection as unknown as Collection<BaseRecord>);
+    syncStore.sync(entity);
     this.init();
   }
 
