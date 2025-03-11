@@ -159,7 +159,7 @@ export class SyncManager {
       return { items: [] };
     }
     // get the collection sync timestamps
-    const mockPullParameters = { lastFinishedSyncStart: 123, lastFinishedSyncEnd: 123 };
+    const mockPullParameters = { lastSync: 123 };
 
     const response = await this.pullFn({ name: collectionName }, mockPullParameters);
     if (response.changes) collection.registerRemoteChange(response.changes);

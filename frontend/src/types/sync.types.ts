@@ -3,10 +3,7 @@ import { type Changeset, type BaseRecord, type Mutation } from './collection.typ
 export type PullFn<T extends BaseRecord = BaseRecord> = {
   (
     collectionOptions: SyncOptions<CollectionOptions>,
-    pullParameters: {
-      lastFinishedSyncStart?: number;
-      lastFinishedSyncEnd?: number;
-    },
+    pullParameters: { lastSync: number },
   ): Promise<LoadResponse<T>>;
 };
 
