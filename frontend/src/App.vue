@@ -16,12 +16,6 @@ const saveUser = async () => {
 const removeUser = async (id: string) => {
   userStore.delete(id);
 };
-
-// This will be handled by hook
-onUnmounted(() => {
-  userStore.destroy();
-  buildStore.destroy();
-});
 </script>
 
 <template>

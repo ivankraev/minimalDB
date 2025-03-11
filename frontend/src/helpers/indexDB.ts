@@ -77,9 +77,22 @@ export const createIndexDBAdapter = <T extends BaseRecord>(
     });
   };
 
+  const clear = async (): Promise<void> => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(storeName, 'readwrite');
+      const store = transaction.objectStore(storeName);
+      const request = store.clear();
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(new Error(request.error?.message));
+    });
+  };
+
   return {
     getAll,
     save,
     getOne,
+    clear,
   };
 };

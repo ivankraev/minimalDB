@@ -26,7 +26,7 @@ export class SyncManager {
     this.setupSocket();
   }
 
-  public addCollection(name: string, collection: Collection) {
+  addCollection(name: string, collection: Collection) {
     if (this.collections.has(name)) {
       console.warn(`Collection '${name}' is already registered.`);
       return;
@@ -143,16 +143,13 @@ export class SyncManager {
     return { type: nextType, data: next.data };
   }
 
-  private async getPendingChanges(): Promise<Changeset> {
+  async sync(collectionName: string): Promise<void> {
+    const { changes, items } = await this.pull(collectionName);
     const _changes = await this.pendingChangesDB.getAll();
-    // aggregate changes
-    return { added: [], modified: [], removed: [] };
-  }
-
-  async sync(collectionName: string) {
-    await this.pull(collectionName);
-    // what happens if there are conflicts ? Resolve in the push changes array first ?
-    await this.push(collectionName);
+    // resolve conflicts between local and remote changes
+    const mockFinalChanges = { added: [], modified: [], removed: [] };
+    await this.push(collectionName, mockFinalChanges);
+    await this.pendingChangesDB.clear();
   }
 
   private async pull(collectionName: string): Promise<LoadResponse> {
@@ -169,20 +166,16 @@ export class SyncManager {
     return response;
   }
 
-  private async push(collectionName: string): Promise<void> {
+  private async push(collectionName: string, changes: Changeset): Promise<void> {
     if (!navigator.onLine) return;
-
     const collection = this.collections.get(collectionName);
     if (!collection) {
       console.warn(`Collection '${collectionName}' is not registered.`);
       return;
     }
 
-    const changes = await this.getPendingChanges();
-
     try {
       await this.pushFn({ name: collectionName }, { changes });
-      // delete  changes after
     } catch (error) {
       //
     }

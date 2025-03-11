@@ -27,6 +27,7 @@ export type PersistenceAdapter<T extends BaseRecord = BaseRecord> = {
   getAll: () => Promise<T[]>;
   save: (changeset: Changeset<T>) => Promise<void>;
   getOne: (id: string) => Promise<T | undefined>;
+  clear: () => Promise<void>;
 };
 
 export type CollectionListeners<T> = {

@@ -6,7 +6,7 @@ import syncStore from 'src/stores/sync.store';
 
 export class BaseStore<T extends BaseRecord> {
   private recordsRef = ref<T[]>([]);
-  private initialized = ref(false);
+  private initialized = ref();
   private collection: Collection<T>;
 
   constructor(entity: string) {
@@ -47,11 +47,11 @@ export class BaseStore<T extends BaseRecord> {
     });
   }
 
-  public listRecords() {
+  listRecords() {
     return computed(() => this.recordsRef.value);
   }
 
-  public async save(record: Partial<T>) {
+  async save(record: Partial<T>) {
     if (!record.id) {
       this.collection.insert(record);
     } else {
@@ -59,15 +59,17 @@ export class BaseStore<T extends BaseRecord> {
     }
   }
 
-  public async delete(id: string) {
+  async delete(id: string) {
     return this.collection.remove(id);
   }
 
-  public async filterRecords() {
+  async filterRecords() {
     return [];
   }
 
-  public destroy() {
-    this.collection.destroy();
+  destroy() {
+    this.recordsRef.value = [];
+    this.collection.cleanup();
+    this.initialized.value = undefined;
   }
 }

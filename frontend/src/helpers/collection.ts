@@ -122,7 +122,7 @@ export class Collection<T extends BaseRecord = BaseRecord> {
     this.listeners[event].delete(callback);
   }
 
-  destroy() {
+  cleanup() {
     this.emit('destroyed', undefined);
     Object.keys(this.listeners).forEach((event) => {
       this.listeners[event as CollectionEvent].clear();
