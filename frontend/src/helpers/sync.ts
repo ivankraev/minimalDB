@@ -40,7 +40,7 @@ export class SyncManager {
       if (!name.startsWith('sync-')) return;
       const collectionName = name.slice(5);
       if (!collectionName) return;
-      this.sync(collectionName);
+      this.pull(collectionName);
     });
   }
 
