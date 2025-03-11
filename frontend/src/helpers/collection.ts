@@ -15,6 +15,10 @@ export class Collection<T extends BaseRecord = BaseRecord> {
     updated: new Set(),
     removed: new Set(),
     'persistence.error': new Set(),
+    '_debug.inserted': new Set(),
+    '_debug.updated': new Set(),
+    '_debug.removed': new Set(),
+    destroyed: new Set(),
   };
 
   constructor(entity: string) {
@@ -42,6 +46,7 @@ export class Collection<T extends BaseRecord = BaseRecord> {
       await this.db.save(changeset);
 
       this.emit('inserted', newRecord);
+      this.emit('_debug.inserted', newRecord);
       return newRecord;
     } catch (error) {
       this.emit('persistence.error', error as Error);
@@ -76,6 +81,7 @@ export class Collection<T extends BaseRecord = BaseRecord> {
       await this.db.save(changeset);
 
       this.emit('updated', updatedRecord);
+      this.emit('_debug.updated', updatedRecord);
     } catch (error) {
       this.emit('persistence.error', error as Error);
     }
@@ -90,6 +96,7 @@ export class Collection<T extends BaseRecord = BaseRecord> {
       await this.db.save(changeset);
 
       this.emit('removed', item);
+      this.emit('_debug.removed', item);
     } catch (error) {
       this.emit('persistence.error', error as Error);
     }
@@ -115,7 +122,8 @@ export class Collection<T extends BaseRecord = BaseRecord> {
     this.listeners[event].delete(callback);
   }
 
-  cleanup() {
+  destroy() {
+    this.emit('destroyed', undefined);
     Object.keys(this.listeners).forEach((event) => {
       this.listeners[event as CollectionEvent].clear();
     });

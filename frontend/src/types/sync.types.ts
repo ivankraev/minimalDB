@@ -1,4 +1,4 @@
-import { type Changeset, type BaseRecord } from './collection.types';
+import { type Changeset, type BaseRecord, type Mutation } from './collection.types';
 
 export type PullFn<T extends BaseRecord = BaseRecord> = {
   (
@@ -30,3 +30,19 @@ export interface LoadResponse<T extends BaseRecord = BaseRecord> {
   items?: T[];
   changes?: Changeset<T>;
 }
+
+export type PendingChangeType = Mutation | 'noop';
+
+export type PendingChange = {
+  id: string;
+  name: string;
+  type: PendingChangeType;
+  data: BaseRecord;
+  time: number;
+};
+
+export type Snapshot = {
+  id: string;
+  name: string;
+  lastSync: number;
+};

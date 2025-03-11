@@ -1,10 +1,20 @@
-export type CollectionEvent = 'inserted' | 'updated' | 'removed' | 'persistence.error';
+export type CollectionEvent =
+  | Mutation
+  | 'persistence.error'
+  | '_debug.inserted'
+  | '_debug.updated'
+  | '_debug.removed'
+  | 'destroyed';
 
 export type CollectionEventData<T> = {
   inserted: T;
   updated: T;
   removed: T;
   'persistence.error': Error;
+  '_debug.inserted': T;
+  '_debug.updated': T;
+  '_debug.removed': T;
+  destroyed: void;
 };
 
 export type Changeset<T extends BaseRecord = BaseRecord> = {
@@ -29,3 +39,5 @@ export type BaseRecord = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+export type Mutation = 'inserted' | 'updated' | 'removed';

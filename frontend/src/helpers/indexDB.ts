@@ -1,3 +1,4 @@
+import { dbPrefix } from 'src/constants';
 import {
   type BaseRecord,
   type Changeset,
@@ -7,7 +8,7 @@ import {
 export const createIndexDBAdapter = <T extends BaseRecord>(
   entity: string,
 ): PersistenceAdapter<T> => {
-  const dbName = `db-${entity}`;
+  const dbName = `${dbPrefix}-collection-${entity}`;
   const storeName = entity;
 
   const openDB = async (): Promise<IDBDatabase> => {

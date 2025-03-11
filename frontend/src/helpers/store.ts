@@ -65,6 +65,6 @@ export class BaseStore<T extends BaseRecord> {
   }
 
   public destroy() {
-    this.collection.cleanup();
+    this.collection.destroy();
   }
 }
