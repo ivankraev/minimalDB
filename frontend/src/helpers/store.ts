@@ -1,17 +1,14 @@
 import { ref, computed } from 'vue';
 
-import { socket } from 'src/boot/socket';
 import { Collection } from './collection';
 import { type BaseRecord } from 'src/types/collection.types';
 
 export class BaseStore<T extends BaseRecord> {
-  private entity: string;
   private recordsRef = ref<T[]>([]);
   private initialized = ref(false);
   private collection: Collection<T>;
 
   constructor(entity: string) {
-    this.entity = entity;
     this.collection = new Collection<T>(entity);
     this.init();
   }
@@ -24,7 +21,6 @@ export class BaseStore<T extends BaseRecord> {
     this.initialized.value = true;
     this.recordsRef.value = await this.collection.getAll();
     this.registerEvents();
-    this.setupSocket();
   }
 
   private registerEvents() {
@@ -48,10 +44,6 @@ export class BaseStore<T extends BaseRecord> {
     });
   }
 
-  private setupSocket() {
-    socket.on(`sync-${this.entity}`, this.collection.registerRemoteChange);
-  }
-
   public listRecords() {
     return computed(() => this.recordsRef.value);
   }
@@ -73,7 +65,6 @@ export class BaseStore<T extends BaseRecord> {
   }
 
   public destroy() {
-    socket.off(`sync-${this.entity}`, this.collection.registerRemoteChange);
     this.collection.cleanup();
   }
 }

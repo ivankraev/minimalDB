@@ -1,5 +1,6 @@
 import { type PushFn, type PullFn, type LoadResponse } from 'src/types/sync.types';
 import { type Collection } from './collection';
+import { socket } from 'src/boot/socket';
 
 export class SyncManager {
   private pullFn: PullFn;
@@ -12,9 +13,6 @@ export class SyncManager {
     this.pushFn = options.push;
   }
 
-  //TODO: Need to store the failed api operation in indexdb for push later
-  //TODO: Need to store the timestamps for each collection
-
   public addCollection(name: string, collection: Collection) {
     if (this.collections.has(name)) {
       console.warn(`Collection '${name}' is already registered.`);
@@ -22,11 +20,21 @@ export class SyncManager {
     }
     this.collections.set(name, collection);
     this.registerCollectionEvents(name);
+    this.setupSocket();
   }
 
-  registerCollectionEvents(collectionName: string) {
+  private registerCollectionEvents(collectionName: string) {
     console.log('register add, update, remove events for collection:', collectionName);
     // on collection destroy, remove the collection from the map ?
+  }
+
+  private setupSocket() {
+    socket.onAny((name: string) => {
+      if (!name.startsWith('sync-')) return;
+      const collectionName = name.slice(5);
+      if (!collectionName) return;
+      this.sync(collectionName);
+    });
   }
 
   private getLastSyncTime(entity: string): number {
@@ -63,8 +71,12 @@ export class SyncManager {
       console.warn(`Collection '${collectionName}' is not registered.`);
       return;
     }
+    try {
+      //
+    } catch (error) {
+      // collect operation for push later
+    }
 
-    // failed api operations
     const mockChanges = { added: [], modified: [], removed: [] };
 
     this.pushFn({ name: collectionName }, { changes: mockChanges });
