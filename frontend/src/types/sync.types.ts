@@ -17,19 +17,19 @@ export type PushFn<T extends BaseRecord = BaseRecord> = {
   ): Promise<void>;
 };
 
-export interface CollectionOptions {
+export type CollectionOptions = {
   name: string;
-}
+};
 
-export interface SyncOptions<Opts> {
+export type SyncOptions<Opts> = {
   name: string;
   options?: Opts;
-}
+};
 
-export interface LoadResponse<T extends BaseRecord = BaseRecord> {
+export type LoadResponse<T extends BaseRecord = BaseRecord> = {
   items?: T[];
   changes?: Changeset<T>;
-}
+};
 
 export type PendingChangeType = Mutation | 'noop';
 
