@@ -24,8 +24,7 @@ export type SyncOptions<Opts> = {
 };
 
 export type LoadResponse<T extends BaseRecord = BaseRecord> = {
-  items?: T[];
-  changes?: Changeset<T>;
+  changes: Changeset<T>;
 };
 
 export type PendingChangeType = Mutation | 'noop';

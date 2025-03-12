@@ -4,13 +4,13 @@ import {
   type LoadResponse,
   type PendingChange,
   type Snapshot,
-  type PendingChangeType,
 } from 'src/types/sync.types';
 import { type Collection } from './collection';
 import { socket } from 'src/boot/socket';
 import { createIndexDBAdapter } from './indexDB';
 import { syncManagerPrefix } from 'src/constants';
-import { type BaseRecord, type Changeset } from 'src/types/collection.types';
+import { type Changeset } from 'src/types/collection.types';
+import { getFromChangeset, mergeLocalChanges, resolveSyncConflicts } from './sync.helper';
 
 export class SyncManager {
   private pullFn: PullFn;
@@ -71,7 +71,7 @@ export class SyncManager {
   }
 
   private async savePendingChange(collectionName: string, changeset: Changeset) {
-    const { type, record } = this.getFromChangeset(changeset);
+    const { type, record } = getFromChangeset(changeset);
     if (!record) return;
     const prev = await this.pendingChangesDB.getOne(record.id);
     const next: PendingChange = {
@@ -85,7 +85,7 @@ export class SyncManager {
     if (!prev) {
       await this.pendingChangesDB.save({ added: [next], modified: [], removed: [] });
     } else {
-      const merged = this.mergeChanges(prev, next);
+      const merged = mergeLocalChanges(prev, next);
       if (merged.type === 'noop') {
         await this.pendingChangesDB.save({ added: [], modified: [], removed: [prev] });
       } else {
@@ -98,57 +98,11 @@ export class SyncManager {
     }
   }
 
-  private getFromChangeset(changeset: Changeset): { type: PendingChangeType; record?: BaseRecord } {
-    const { added, modified, removed } = changeset;
-    if (added[0]) {
-      return { type: 'inserted', record: added[0] };
-    } else if (modified[0]) {
-      return { type: 'updated', record: modified[0] };
-    } else if (removed[0]) {
-      return { type: 'removed', record: removed[0] };
-    } else {
-      return { type: 'noop' };
-    }
-  }
-
-  private mergeChanges(prev: PendingChange, next: PendingChange): Partial<PendingChange> {
-    const prevType = prev.type;
-    const nextType = next.type;
-
-    if (nextType === 'removed') {
-      if (prevType === 'inserted') return { type: 'noop' };
-      if (prevType === 'updated') return { type: 'removed', data: prev.data };
-      if (prevType === 'removed') return { type: 'removed', data: prev.data };
-      return { type: 'removed', data: next.data };
-    }
-
-    if (nextType === 'updated') {
-      if (prevType === 'inserted')
-        return { type: 'inserted', data: { ...prev.data, ...next.data } };
-      if (prevType === 'updated') return { type: 'updated', data: { ...prev.data, ...next.data } };
-      if (prevType === 'removed') return { type: 'inserted', data: next.data };
-      return { type: 'updated', data: next.data };
-    }
-
-    if (nextType === 'inserted') {
-      if (prevType === 'inserted')
-        return { type: 'inserted', data: { ...prev.data, ...next.data } };
-      if (prevType === 'updated') return { type: 'inserted', data: { ...prev.data, ...next.data } };
-      if (prevType === 'removed') return { type: 'inserted', data: next.data };
-      return { type: 'inserted', data: next.data };
-    }
-
-    if (nextType === 'noop') return { type: 'noop' };
-
-    return { type: nextType, data: next.data };
-  }
-
   async sync(collectionName: string): Promise<void> {
-    const { changes, items } = await this.pull(collectionName);
-    const _changes = await this.pendingChangesDB.getAll();
-    // resolve conflicts between local and remote changes
-    const mockFinalChanges = { added: [], modified: [], removed: [] };
-    await this.push(collectionName, mockFinalChanges);
+    const { changes: remoteChanges } = await this.pull(collectionName);
+    const localChanges = await this.pendingChangesDB.getAll();
+    const pushChanges = resolveSyncConflicts(localChanges, remoteChanges);
+    await this.push(collectionName, pushChanges);
     await this.pendingChangesDB.clear();
   }
 
@@ -156,9 +110,9 @@ export class SyncManager {
     const collection = this.collections.get(collectionName);
     if (!collection) {
       console.warn(`Collection '${collectionName}' is not registered.`);
-      return { items: [] };
+      return { changes: { added: [], modified: [], removed: [] } };
     }
-    // get the collection sync timestamps
+
     const mockPullParameters = { lastSync: 123 };
 
     const response = await this.pullFn({ name: collectionName }, mockPullParameters);
