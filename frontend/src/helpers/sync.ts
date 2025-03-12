@@ -10,13 +10,18 @@ import { socket } from 'src/boot/socket';
 import { createIndexDBAdapter } from './indexDB';
 import { syncManagerPrefix } from 'src/constants';
 import { type Changeset } from 'src/types/collection.types';
-import { getFromChangeset, mergeLocalChanges, resolveSyncConflicts } from './sync.helper';
+import {
+  getFromChangeset,
+  isChangesetEmpty,
+  mergeLocalChanges,
+  resolveSyncConflicts,
+} from './sync.helper';
 
 export class SyncManager {
   private pullFn: PullFn;
   private pushFn: PushFn;
   private pendingChangesDB = createIndexDBAdapter<PendingChange>(`${syncManagerPrefix}-changes`);
-  private snapshots = createIndexDBAdapter<Snapshot>(`${syncManagerPrefix}-snapshots`);
+  private snapshotsDB = createIndexDBAdapter<Snapshot>(`${syncManagerPrefix}-snapshots`);
 
   private collections: Map<string, Collection> = new Map();
 
@@ -113,10 +118,21 @@ export class SyncManager {
       return { changes: { added: [], modified: [], removed: [] } };
     }
 
-    const mockPullParameters = { lastSync: 123 };
+    const snapshots = await this.snapshotsDB.getAll();
+    const collectionSnapshot = snapshots.find((snapshot) => snapshot.name === collectionName);
 
-    const response = await this.pullFn({ name: collectionName }, mockPullParameters);
-    if (response.changes) collection.registerRemoteChange(response.changes);
+    if (!collectionSnapshot) {
+      console.warn(`Snapshot for '${collectionName}' is not found.`);
+      return { changes: { added: [], modified: [], removed: [] } };
+    }
+
+    const response = await this.pullFn(
+      { name: collectionName },
+      { lastSync: collectionSnapshot.lastSync },
+    );
+
+    if (!isChangesetEmpty(response.changes)) collection.registerRemoteChange(response.changes);
+
     return response;
   }
 

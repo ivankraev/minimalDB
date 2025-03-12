@@ -56,3 +56,13 @@ export const resolveSyncConflicts = <T extends BaseRecord = BaseRecord>(
   console.log(localChanges, remoteChanges);
   return { added: [], modified: [], removed: [] };
 };
+
+export const isChangesetEmpty = <T extends BaseRecord = BaseRecord>(
+  changeset: Changeset<T>,
+): boolean => {
+  return (
+    changeset.added.length === 0 &&
+    changeset.modified.length === 0 &&
+    changeset.removed.length === 0
+  );
+};
