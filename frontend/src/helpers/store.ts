@@ -8,7 +8,7 @@ export const generateId = () => crypto.randomUUID();
 
 export class BaseStore<T extends BaseRecord> {
   private recordsRef = ref<T[]>([]);
-  private initialized = ref();
+  private initialized = false;
   private collection: Collection<T>;
 
   constructor(entity: string) {
@@ -19,11 +19,11 @@ export class BaseStore<T extends BaseRecord> {
   }
 
   private async init() {
-    if (this.initialized.value) {
+    if (this.initialized) {
       console.warn('Store already initialized');
       return;
     }
-    this.initialized.value = true;
+    this.initialized = true;
     this.recordsRef.value = await this.collection.getAll();
     this.registerEvents();
   }
@@ -72,6 +72,6 @@ export class BaseStore<T extends BaseRecord> {
   destroy() {
     this.recordsRef.value = [];
     this.collection.cleanup();
-    this.initialized.value = undefined;
+    this.initialized = false;
   }
 }
