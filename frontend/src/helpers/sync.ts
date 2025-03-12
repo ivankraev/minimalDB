@@ -92,6 +92,7 @@ export class SyncManager {
     if (!prev) {
       await this.pendingChangesDB.save({ added: [next], modified: [], removed: [] });
     } else {
+      //TODO: Review this part below
       const merged = mergeLocalChanges(prev, next);
       if (merged.type === 'noop') {
         await this.pendingChangesDB.save({ added: [], modified: [], removed: [prev] });
