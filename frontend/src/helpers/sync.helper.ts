@@ -66,3 +66,5 @@ export const isChangesetEmpty = <T extends BaseRecord = BaseRecord>(
     changeset.removed.length === 0
   );
 };
+
+export const timestamp = () => Date.now();

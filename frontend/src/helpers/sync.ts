@@ -15,6 +15,7 @@ import {
   isChangesetEmpty,
   mergeLocalChanges,
   resolveSyncConflicts,
+  timestamp,
 } from './sync.helper';
 import { generateId } from './store';
 
@@ -85,7 +86,7 @@ export class SyncManager {
       name: collectionName,
       type,
       data: record,
-      time: Date.now(),
+      time: timestamp(),
     };
 
     if (!prev) {
@@ -133,7 +134,7 @@ export class SyncManager {
 
     if (!prev) {
       return await this.snapshotsDB.save({
-        added: [{ name: collectionName, lastSync: Date.now(), id: generateId() }],
+        added: [{ name: collectionName, lastSync: timestamp(), id: generateId() }],
         modified: [],
         removed: [],
       });
@@ -141,7 +142,7 @@ export class SyncManager {
 
     await this.snapshotsDB.save({
       added: [],
-      modified: [{ ...prev, lastSync: Date.now() }],
+      modified: [{ ...prev, lastSync: timestamp() }],
       removed: [],
     });
   }
@@ -157,7 +158,7 @@ export class SyncManager {
 
     const response = await this.pullFn(
       { name: collectionName },
-      { lastSync: collectionSnapshot?.lastSync ?? Date.now() },
+      { lastSync: collectionSnapshot?.lastSync ?? timestamp() },
     );
 
     if (!isChangesetEmpty(response.changes)) collection.registerRemoteChange(response.changes);
