@@ -1,12 +1,13 @@
 import { dbPrefix } from 'src/constants';
+import { type BaseRecord, type Changeset } from 'src/types/collection.types';
 import {
-  type BaseRecord,
-  type Changeset,
   type PersistenceAdapter,
-} from 'src/types/collection.types';
+  type PersistenceAdapterOptions,
+} from 'src/types/persistence.types';
 
 export const createIndexDBAdapter = <T extends BaseRecord>(
   entity: string,
+  options?: PersistenceAdapterOptions<T>,
 ): PersistenceAdapter<T> => {
   const dbName = `${dbPrefix}-collection-${entity}`;
   const storeName = entity;
@@ -24,9 +25,14 @@ export const createIndexDBAdapter = <T extends BaseRecord>(
           store = request.transaction?.objectStore(storeName);
         }
 
-        if (store && !store.indexNames.contains('createdAt')) {
-          store.createIndex('createdAt', 'createdAt', { unique: false });
-        }
+        const indexes = options?.indeces || [];
+
+        indexes.forEach(({ name, path, unique = false }) => {
+          const key = path.toString();
+          const indexName = name ?? key;
+          if (store && !store.indexNames.contains(key))
+            store.createIndex(indexName, key, { unique });
+        });
       };
 
       request.onsuccess = () => resolve(request.result);
@@ -40,8 +46,13 @@ export const createIndexDBAdapter = <T extends BaseRecord>(
       const transaction = db.transaction(storeName, 'readonly');
       const store = transaction.objectStore(storeName);
 
-      const index = store.index('createdAt');
-      const request = index.getAll();
+      let request: IDBRequest<T[]>;
+      if (options?.indeces?.[0]) {
+        const index = store.index(options.indeces[0].name || options.indeces[0].path.toString());
+        request = index.getAll();
+      } else {
+        request = store.getAll();
+      }
 
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(new Error(request.error?.message));

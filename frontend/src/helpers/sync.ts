@@ -16,6 +16,7 @@ import {
   mergeLocalChanges,
   resolveSyncConflicts,
 } from './sync.helper';
+import { generateId } from './store';
 
 export class SyncManager {
   private pullFn: PullFn;
@@ -80,7 +81,7 @@ export class SyncManager {
     if (!record) return;
     const prev = await this.pendingChangesDB.getOne(record.id);
     const next: PendingChange = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: collectionName,
       type,
       data: record,
@@ -103,12 +104,46 @@ export class SyncManager {
     }
   }
 
+  private async clearPendingChanges(collectionName: string) {
+    const changes = await this.getPendingChanges(collectionName);
+    await this.pendingChangesDB.save({ added: [], modified: [], removed: changes });
+  }
+
+  private async getPendingChanges(collectionName: string): Promise<PendingChange[]> {
+    const changes = await this.pendingChangesDB.getAll();
+    return changes.filter((change) => change.name === collectionName);
+  }
+
   async sync(collectionName: string): Promise<void> {
     const { changes: remoteChanges } = await this.pull(collectionName);
-    const localChanges = await this.pendingChangesDB.getAll();
+    const localChanges = await this.getPendingChanges(collectionName);
     const pushChanges = resolveSyncConflicts(localChanges, remoteChanges);
     await this.push(collectionName, pushChanges);
-    await this.pendingChangesDB.clear();
+    await this.clearPendingChanges(collectionName);
+    await this.takeSnapshot(collectionName);
+  }
+
+  private async getSnapshot(collectionName: string) {
+    const snapshots = await this.snapshotsDB.getAll();
+    return snapshots.find((snapshot) => snapshot.name === collectionName);
+  }
+
+  private async takeSnapshot(collectionName: string) {
+    const prev = await this.getSnapshot(collectionName);
+
+    if (!prev) {
+      return await this.snapshotsDB.save({
+        added: [{ name: collectionName, lastSync: Date.now(), id: generateId() }],
+        modified: [],
+        removed: [],
+      });
+    }
+
+    await this.snapshotsDB.save({
+      added: [],
+      modified: [{ ...prev, lastSync: Date.now() }],
+      removed: [],
+    });
   }
 
   private async pull(collectionName: string): Promise<LoadResponse> {
@@ -118,17 +153,11 @@ export class SyncManager {
       return { changes: { added: [], modified: [], removed: [] } };
     }
 
-    const snapshots = await this.snapshotsDB.getAll();
-    const collectionSnapshot = snapshots.find((snapshot) => snapshot.name === collectionName);
-
-    if (!collectionSnapshot) {
-      console.warn(`Snapshot for '${collectionName}' is not found.`);
-      return { changes: { added: [], modified: [], removed: [] } };
-    }
+    const collectionSnapshot = await this.getSnapshot(collectionName);
 
     const response = await this.pullFn(
       { name: collectionName },
-      { lastSync: collectionSnapshot.lastSync },
+      { lastSync: collectionSnapshot?.lastSync ?? Date.now() },
     );
 
     if (!isChangesetEmpty(response.changes)) collection.registerRemoteChange(response.changes);

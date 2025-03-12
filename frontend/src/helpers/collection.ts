@@ -2,11 +2,12 @@ import {
   type Changeset,
   type CollectionEventData,
   type CollectionEvent,
-  type PersistenceAdapter,
   type CollectionListeners,
   type BaseRecord,
 } from 'src/types/collection.types';
 import { createIndexDBAdapter } from './indexDB';
+import { type PersistenceAdapter } from 'src/types/persistence.types';
+import { generateId } from './store';
 
 export class Collection<T extends BaseRecord = BaseRecord> {
   private db: PersistenceAdapter<T>;
@@ -22,7 +23,7 @@ export class Collection<T extends BaseRecord = BaseRecord> {
   };
 
   constructor(entity: string) {
-    this.db = createIndexDBAdapter<T>(entity);
+    this.db = createIndexDBAdapter<T>(entity, { indeces: [{ path: 'createdAt' }] });
   }
 
   async getAll(): Promise<T[]> {
@@ -38,7 +39,7 @@ export class Collection<T extends BaseRecord = BaseRecord> {
     try {
       const newRecord = {
         ...record,
-        id: crypto.randomUUID(),
+        id: generateId(),
         createdAt: new Date().toISOString(),
       } as T;
 

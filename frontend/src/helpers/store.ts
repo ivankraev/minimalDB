@@ -4,6 +4,8 @@ import { Collection } from './collection';
 import { type BaseRecord } from 'src/types/collection.types';
 import syncStore from 'src/stores/sync.store';
 
+export const generateId = () => crypto.randomUUID();
+
 export class BaseStore<T extends BaseRecord> {
   private recordsRef = ref<T[]>([]);
   private initialized = ref();
