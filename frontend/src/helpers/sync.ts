@@ -47,7 +47,7 @@ export class SyncManager {
       if (!name.startsWith('sync-')) return;
       const collectionName = name.slice(5);
       if (!collectionName) return;
-      this.pull(collectionName);
+      this.pullChanges(collectionName);
     });
   }
 
@@ -55,20 +55,20 @@ export class SyncManager {
     const collection = this.collections.get(collectionName);
     if (!collection) return;
     collection.on('_debug.inserted', (record) => {
-      this.pushChange(collectionName, { added: [record], modified: [], removed: [] });
+      this.pushDetectedChange(collectionName, { added: [record], modified: [], removed: [] });
     });
     collection.on('_debug.updated', (record) => {
-      this.pushChange(collectionName, { added: [], modified: [record], removed: [] });
+      this.pushDetectedChange(collectionName, { added: [], modified: [record], removed: [] });
     });
     collection.on('_debug.removed', (record) => {
-      this.pushChange(collectionName, { added: [], modified: [], removed: [record] });
+      this.pushDetectedChange(collectionName, { added: [], modified: [], removed: [record] });
     });
     collection.on('destroyed', () => {
       this.collections.delete(collectionName);
     });
   }
 
-  private async pushChange(collectionName: string, changeset: Changeset) {
+  private async pushDetectedChange(collectionName: string, changeset: Changeset) {
     if (!navigator.onLine) return this.savePendingChange(collectionName, changeset);
     try {
       await this.pushFn({ name: collectionName }, { changes: changeset });
@@ -116,10 +116,10 @@ export class SyncManager {
   }
 
   async sync(collectionName: string): Promise<void> {
-    const { changes: remoteChanges } = await this.pull(collectionName);
+    const { changes: remoteChanges } = await this.pullChanges(collectionName);
     const localChanges = await this.getPendingChanges(collectionName);
     const pushChanges = resolveSyncConflicts(localChanges, remoteChanges);
-    await this.push(collectionName, pushChanges);
+    await this.pushChanges(collectionName, pushChanges);
     await this.clearPendingChanges(collectionName);
     await this.takeSnapshot(collectionName);
   }
@@ -147,7 +147,7 @@ export class SyncManager {
     });
   }
 
-  private async pull(collectionName: string): Promise<LoadResponse> {
+  private async pullChanges(collectionName: string): Promise<LoadResponse> {
     const collection = this.collections.get(collectionName);
     if (!collection) {
       console.warn(`Collection '${collectionName}' is not registered.`);
@@ -155,18 +155,16 @@ export class SyncManager {
     }
 
     const collectionSnapshot = await this.getSnapshot(collectionName);
+    const lastSync = collectionSnapshot?.lastSync ?? timestamp();
 
-    const response = await this.pullFn(
-      { name: collectionName },
-      { lastSync: collectionSnapshot?.lastSync ?? timestamp() },
-    );
+    const response = await this.pullFn({ name: collectionName }, { lastSync });
 
     if (!isChangesetEmpty(response.changes)) collection.registerRemoteChange(response.changes);
 
     return response;
   }
 
-  private async push(collectionName: string, changes: Changeset): Promise<void> {
+  private async pushChanges(collectionName: string, changes: Changeset): Promise<void> {
     if (!navigator.onLine) return;
     const collection = this.collections.get(collectionName);
     if (!collection) {
@@ -177,7 +175,7 @@ export class SyncManager {
     try {
       await this.pushFn({ name: collectionName }, { changes });
     } catch (error) {
-      //
+      console.error('Error pushing changes', error);
     }
   }
 }
