@@ -31,8 +31,8 @@ export class Collection<T extends BaseRecord = BaseRecord> {
 
   async getAll(): Promise<T[]> {
     try {
-      const records = await this.db.getAll();
-      return this.transform(records);
+      const raw = await this.db.getAll();
+      return this.transform(raw);
     } catch (error) {
       this.emit('persistence.error', error as Error);
       return [];
@@ -41,19 +41,19 @@ export class Collection<T extends BaseRecord = BaseRecord> {
 
   async insert(record: Partial<T>) {
     try {
-      const newRecord = {
+      const raw = {
         ...record,
         id: generateId(),
         createdAt: new Date().toISOString(),
       } as T;
 
-      const changeset: Changeset<T> = { added: [newRecord], modified: [], removed: [] };
+      const changeset: Changeset<T> = { added: [raw], modified: [], removed: [] };
       await this.db.save(changeset);
 
-      const transformed = this.transform(newRecord);
+      const transformed = this.transform(raw);
 
       this.emit('inserted', transformed);
-      this.emit('_debug.inserted', newRecord);
+      this.emit('_debug.inserted', raw);
       return transformed;
     } catch (error) {
       this.emit('persistence.error', error as Error);
@@ -75,22 +75,22 @@ export class Collection<T extends BaseRecord = BaseRecord> {
     if (!data.id) return;
 
     try {
-      const existingRecord = await this.db.getOne(data.id);
-      if (!existingRecord) throw new Error(`Record with ID ${data.id} not found`);
+      const prev = await this.db.getOne(data.id);
+      if (!prev) throw new Error(`Record with ID ${data.id} not found`);
 
-      const updatedRecord = {
-        ...existingRecord,
+      const raw = {
+        ...prev,
         ...data,
         updatedAt: new Date().toISOString(),
       } as T;
 
-      const changeset: Changeset<T> = { added: [], modified: [updatedRecord], removed: [] };
+      const changeset: Changeset<T> = { added: [], modified: [raw], removed: [] };
       await this.db.save(changeset);
 
-      const transformed = this.transform(updatedRecord);
+      const transformed = this.transform(raw);
 
       this.emit('updated', transformed);
-      this.emit('_debug.updated', updatedRecord);
+      this.emit('_debug.updated', raw);
       return transformed;
     } catch (error) {
       this.emit('persistence.error', error as Error);
@@ -99,16 +99,16 @@ export class Collection<T extends BaseRecord = BaseRecord> {
 
   async remove(id: string) {
     try {
-      const item = await this.db.getOne(id);
-      if (!item) return;
+      const prev = await this.db.getOne(id);
+      if (!prev) return;
 
-      const changeset: Changeset<T> = { added: [], modified: [], removed: [item] };
+      const changeset: Changeset<T> = { added: [], modified: [], removed: [prev] };
       await this.db.save(changeset);
 
-      const transformed = this.transform(item);
+      const transformed = this.transform(prev);
 
       this.emit('removed', transformed);
-      this.emit('_debug.removed', item);
+      this.emit('_debug.removed', prev);
     } catch (error) {
       this.emit('persistence.error', error as Error);
     }
@@ -116,8 +116,8 @@ export class Collection<T extends BaseRecord = BaseRecord> {
 
   async get(id: string): Promise<T | undefined> {
     try {
-      const record = await this.db.getOne(id);
-      return this.transform(record);
+      const raw = await this.db.getOne(id);
+      return this.transform(raw);
     } catch (error) {
       this.emit('persistence.error', error as Error);
     }
