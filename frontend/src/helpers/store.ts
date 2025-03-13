@@ -1,9 +1,15 @@
-import { ref, computed, toRaw, type ComputedRef } from 'vue';
+import { ref, computed, toRaw } from 'vue';
 
 import { Collection } from './collection';
 import { type BaseRecord } from 'src/types/collection.types';
 import syncStore from 'src/stores/sync.store';
-import { type FindOptions, type Selector } from 'src/types/selector.types';
+import {
+  type ReactiveReturnArray,
+  type FindOptions,
+  type Selector,
+  type ReactiveOption,
+  type ReactiveReturn,
+} from 'src/types/selector.types';
 import { DBQuery } from './query';
 
 export const generateId = () => crypto.randomUUID();
@@ -51,23 +57,30 @@ export class BaseStore<T extends BaseRecord> {
     });
   }
 
-  listRecords() {
+  listRecords<O extends ReactiveOption>(options: O = {} as O): ReactiveReturnArray<T, O> {
+    // @ts-expect-error
+    if (options.reactive === false) return toRaw(this.recordsRef.value);
+    // @ts-expect-error
     return computed(() => this.recordsRef.value);
   }
 
-  filterRecords(selector: Selector<T>, options: FindOptions<T> & { reactive: false }): T[];
-  filterRecords(selector: Selector<T>, options?: FindOptions<T>): ComputedRef<T[]>;
-  filterRecords(selector: Selector<T>, options: FindOptions<T> = {}) {
-    if (options.reactive === false) {
+  filterRecords<O extends FindOptions<T>>(
+    selector: Selector<T>,
+    opts: O = {} as O,
+  ): ReactiveReturnArray<T, O> {
+    if (opts.reactive === false) {
       // @ts-expect-error
-      return new DBQuery(selector, options).run([...this.recordsRef.value]);
+      return new DBQuery(selector, opts).run(toRaw(this.recordsRef.value));
     }
     // @ts-expect-error
-    return computed(() => new DBQuery(selector, options).run([...this.recordsRef.value]));
+    return computed(() => new DBQuery(selector, opts).run(this.recordsRef.value));
   }
 
-  getRecord(id?: string) {
-    return computed(() => this.recordsRef.value.find((r) => r.id === id));
+  getRecord<O extends ReactiveOption>(id?: string, options?: O): ReactiveReturn<T, O> {
+    if (options?.reactive === false) {
+      return toRaw(this.recordsRef.value.find((r) => r.id === id)) as ReactiveReturn<T, O>;
+    }
+    return computed(() => this.recordsRef.value.find((r) => r.id === id)) as ReactiveReturn<T, O>;
   }
 
   async save(form: Partial<T>) {

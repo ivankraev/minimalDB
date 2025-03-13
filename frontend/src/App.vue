@@ -8,7 +8,7 @@ const users = computed(() => userStore.filterRecords({}, { sort: { name: -1 } })
 const builds = computed(() => buildStore.listRecords().value);
 
 const saveUser = async () => {
-  const noReactive = userStore.filterRecords({}, { reactive: false, skip: 2 });
+  const noReactive = userStore.filterRecords({}, { reactive: false });
   console.log(noReactive);
   if (record.value.name === '') return;
   userStore.save(record.value);

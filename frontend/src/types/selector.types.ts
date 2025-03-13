@@ -1,3 +1,5 @@
+import { type ComputedRef } from 'vue';
+
 export type FieldExpression<T> =
   | T
   | {
@@ -59,9 +61,21 @@ export type Selector<T> = FlatQuery<T> & {
   $nor?: Selector<T>[];
 };
 
-export interface FindOptions<T> {
+export type ReactiveOption = {
+  reactive?: boolean;
+};
+
+export type FindOptions<T> = ReactiveOption & {
   sort?: Partial<Record<keyof T, 1 | -1>>;
   skip?: number;
   limit?: number;
   reactive?: boolean;
-}
+};
+
+export type ReactiveReturnArray<T, O extends ReactiveOption> = O extends { reactive: false }
+  ? T[]
+  : ComputedRef<T[]>;
+
+export type ReactiveReturn<T, O extends ReactiveOption> = O extends { reactive: false }
+  ? T | undefined
+  : ComputedRef<T | undefined>;
