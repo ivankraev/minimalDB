@@ -1,5 +1,3 @@
-import { type Query } from 'mingo';
-
 export type FieldExpression<T> =
   | T
   | {
