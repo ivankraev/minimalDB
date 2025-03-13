@@ -4,10 +4,12 @@ import userStore from './pages/user/user.store';
 import buildStore from './pages/build/build.store';
 
 const record = ref({ name: '', roles: ['Guest'], email: '' });
-const users = computed(() => userStore.listRecords().value);
+const users = computed(() => userStore.filterRecords({}, { sort: { name: -1 } }).value);
 const builds = computed(() => buildStore.listRecords().value);
 
 const saveUser = async () => {
+  const noReactive = userStore.filterRecords({}, { reactive: false, skip: 2 });
+  console.log(noReactive);
   if (record.value.name === '') return;
   userStore.save(record.value);
   record.value = { name: '', roles: ['Guest'], email: '' };

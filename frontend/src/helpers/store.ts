@@ -1,10 +1,10 @@
-import { ref, computed, toRaw } from 'vue';
+import { ref, computed, toRaw, type ComputedRef } from 'vue';
 
 import { Collection } from './collection';
 import { type BaseRecord } from 'src/types/collection.types';
 import syncStore from 'src/stores/sync.store';
-import { Query } from 'mingo';
-import { type Selector } from 'src/types/selector.types';
+import { type FindOptions, type Selector } from 'src/types/selector.types';
+import { DBQuery } from './query';
 
 export const generateId = () => crypto.randomUUID();
 
@@ -55,8 +55,15 @@ export class BaseStore<T extends BaseRecord> {
     return computed(() => this.recordsRef.value);
   }
 
-  filterRecords(selector: Selector<T>) {
-    return computed(() => new Query(selector).find<T>(this.recordsRef.value).all());
+  filterRecords(selector: Selector<T>, options: FindOptions<T> & { reactive: false }): T[];
+  filterRecords(selector: Selector<T>, options?: FindOptions<T>): ComputedRef<T[]>;
+  filterRecords(selector: Selector<T>, options: FindOptions<T> = {}) {
+    if (options.reactive === false) {
+      // @ts-expect-error
+      return new DBQuery(selector, options).run([...this.recordsRef.value]);
+    }
+    // @ts-expect-error
+    return computed(() => new DBQuery(selector, options).run([...this.recordsRef.value]));
   }
 
   getRecord(id?: string) {

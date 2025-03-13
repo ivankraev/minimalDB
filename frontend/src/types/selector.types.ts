@@ -58,3 +58,10 @@ export type Selector<T> = FlatQuery<T> & {
   $and?: Selector<T>[];
   $nor?: Selector<T>[];
 };
+
+export interface FindOptions<T> {
+  sort?: Partial<Record<keyof T, 1 | -1>>;
+  skip?: number;
+  limit?: number;
+  reactive?: boolean;
+}
