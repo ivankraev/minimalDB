@@ -3,14 +3,14 @@ import { ref, computed } from 'vue';
 import userStore from './pages/user/user.store';
 import buildStore from './pages/build/build.store';
 
-const recordName = ref('');
-const users = computed(() => userStore.filterRecords({ email: 'test@gmail.com' }).value);
+const record = ref({ name: '', roles: ['Guest'], email: '' });
+const users = computed(() => userStore.listRecords().value);
 const builds = computed(() => buildStore.listRecords().value);
 
 const saveUser = async () => {
-  if (recordName.value === '') return;
-  userStore.save({ name: recordName.value, email: 'test@gmail.com' });
-  recordName.value = '';
+  if (record.value.name === '') return;
+  userStore.save(record.value);
+  record.value = { name: '', roles: ['Guest'], email: '' };
 };
 
 const removeUser = async (id: string) => {
@@ -28,7 +28,11 @@ const removeUser = async (id: string) => {
         </q-toolbar>
         <q-list bordered v-if="users.length" separator>
           <q-item v-for="record in users" :key="record.id">
-            <q-item-section>{{ record.name }}</q-item-section>
+            <q-item-section>
+              <q-item-label>{{ record.name }}</q-item-label>
+              <q-item-label caption>{{ record.email }}</q-item-label>
+              <q-item-label>{{ record.roles.join(', ') }}</q-item-label>
+            </q-item-section>
             <q-item-section side>
               <q-btn flat round icon="delete" @click="removeUser(record.id)" color="negative" />
             </q-item-section>
@@ -38,7 +42,15 @@ const removeUser = async (id: string) => {
 
       <q-card-section>
         <q-form @submit.prevent="saveUser">
-          <q-input v-model="recordName" placeholder="Enter user name" />
+          <q-input v-model="record.name" placeholder="Enter user name" />
+          <q-input v-model="record.email" placeholder="Enter user email" class="q-mt-md" />
+          <q-select
+            v-model="record.roles"
+            :options="['Admin', 'User', 'Guest']"
+            multiple
+            placeholder="Select roles"
+            class="q-mt-md"
+          />
           <q-btn type="submit" color="primary" label="Create" class="q-mt-md" />
         </q-form>
       </q-card-section>

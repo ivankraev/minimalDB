@@ -3,6 +3,7 @@ import { type BaseRecord } from 'src/types/collection.types';
 
 export type UserData = BaseRecord & {
   email: string;
+  roles: string[];
 };
 
 const entity = 'user';

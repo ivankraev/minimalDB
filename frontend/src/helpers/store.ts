@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, toRaw } from 'vue';
 
 import { Collection } from './collection';
 import { type BaseRecord } from 'src/types/collection.types';
@@ -63,7 +63,9 @@ export class BaseStore<T extends BaseRecord> {
     return computed(() => this.recordsRef.value.find((r) => r.id === id));
   }
 
-  async save(record: Partial<T>) {
+  async save(form: Partial<T>) {
+    const record = toRaw(form);
+
     if (!record.id) {
       this.collection.insert(record);
     } else {
