@@ -55,6 +55,14 @@ export class BaseStore<T extends BaseRecord> {
     return computed(() => this.recordsRef.value);
   }
 
+  filterRecords(selector: Selector<T>) {
+    return computed(() => new Query(selector).find<T>(this.recordsRef.value).all());
+  }
+
+  getRecord(id?: string) {
+    return computed(() => this.recordsRef.value.find((r) => r.id === id));
+  }
+
   async save(record: Partial<T>) {
     if (!record.id) {
       this.collection.insert(record);
@@ -65,10 +73,6 @@ export class BaseStore<T extends BaseRecord> {
 
   async delete(id: string) {
     return this.collection.remove(id);
-  }
-
-  filterRecords(selector: Selector<T>) {
-    return computed(() => new Query(selector).find<T>(this.recordsRef.value).all());
   }
 
   destroy() {
