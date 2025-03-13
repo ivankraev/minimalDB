@@ -6,8 +6,8 @@ export type FieldExpression<T> =
       $gte?: T;
       $lt?: T;
       $lte?: T;
-      $in?: T[];
-      $nin?: T[];
+      $in?: T extends Array<infer U> ? U[] : T[];
+      $nin?: T extends Array<infer U> ? U[] : T[];
       $ne?: T;
       $exists?: boolean;
       $not?: FieldExpression<T>;
