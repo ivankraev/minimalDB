@@ -2,19 +2,19 @@ import { type Changeset, type BaseRecord, type Mutation } from './collection.typ
 
 export type PullFn<T extends BaseRecord = BaseRecord> = {
   (
-    collectionOptions: SyncOptions<CollectionOptions>,
+    collectionOptions: SyncOptions<CollectionSyncOptions>,
     pullParameters: { lastSync: number },
   ): Promise<LoadResponse<T>>;
 };
 
 export type PushFn<T extends BaseRecord = BaseRecord> = {
   (
-    collectionOptions: SyncOptions<CollectionOptions>,
+    collectionOptions: SyncOptions<CollectionSyncOptions>,
     pushParameters: { changes: Changeset<T> },
   ): Promise<void>;
 };
 
-export type CollectionOptions = {
+export type CollectionSyncOptions = {
   name: string;
 };
 

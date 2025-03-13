@@ -25,7 +25,7 @@ export const createIndexDBAdapter = <T extends BaseRecord>(
           store = request.transaction?.objectStore(storeName);
         }
 
-        const indexes = options?.indeces || [];
+        const indexes = options?.indexes || [];
 
         indexes.forEach(({ name, path, unique = false }) => {
           const key = path.toString();
@@ -47,8 +47,8 @@ export const createIndexDBAdapter = <T extends BaseRecord>(
       const store = transaction.objectStore(storeName);
 
       let request: IDBRequest<T[]>;
-      if (options?.indeces?.[0]) {
-        const index = store.index(options.indeces[0].name || options.indeces[0].path.toString());
+      if (options?.indexes?.[0]) {
+        const index = store.index(options.indexes[0].name || options.indexes[0].path.toString());
         request = index.getAll();
       } else {
         request = store.getAll();

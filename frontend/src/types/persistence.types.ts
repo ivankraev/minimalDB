@@ -14,5 +14,5 @@ export type PersistenceAdapterIndex<T extends BaseRecord = BaseRecord> = {
 };
 
 export type PersistenceAdapterOptions<T extends BaseRecord = BaseRecord> = {
-  indeces?: PersistenceAdapterIndex<T>[];
+  indexes?: PersistenceAdapterIndex<T>[];
 };

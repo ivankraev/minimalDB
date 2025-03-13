@@ -14,7 +14,7 @@ export class BaseStore<T extends BaseRecord> {
   private collection: Collection<T>;
 
   constructor(entity: string) {
-    this.collection = new Collection<T>(entity);
+    this.collection = new Collection<T>({ entity, indexes: [{ path: 'createdAt' }] });
     syncStore.addCollection(entity, this.collection as unknown as Collection<BaseRecord>);
     syncStore.sync(entity);
     this.init();

@@ -4,6 +4,7 @@ import {
   type CollectionEvent,
   type CollectionListeners,
   type BaseRecord,
+  type CollectionOptions,
 } from 'src/types/collection.types';
 import { createIndexDBAdapter } from './indexDB';
 import { type PersistenceAdapter } from 'src/types/persistence.types';
@@ -11,6 +12,7 @@ import { generateId } from './store';
 
 export class Collection<T extends BaseRecord = BaseRecord> {
   private db: PersistenceAdapter<T>;
+  private opts: CollectionOptions<T>;
   private listeners: CollectionListeners<T> = {
     inserted: new Set(),
     updated: new Set(),
@@ -22,13 +24,15 @@ export class Collection<T extends BaseRecord = BaseRecord> {
     destroyed: new Set(),
   };
 
-  constructor(entity: string) {
-    this.db = createIndexDBAdapter<T>(entity, { indeces: [{ path: 'createdAt' }] });
+  constructor(opts: CollectionOptions<T>) {
+    this.db = createIndexDBAdapter<T>(opts.entity, { indexes: opts.indexes ?? [] });
+    this.opts = opts;
   }
 
   async getAll(): Promise<T[]> {
     try {
-      return await this.db.getAll();
+      const records = await this.db.getAll();
+      return this.transform(records);
     } catch (error) {
       this.emit('persistence.error', error as Error);
       return [];
@@ -46,9 +50,11 @@ export class Collection<T extends BaseRecord = BaseRecord> {
       const changeset: Changeset<T> = { added: [newRecord], modified: [], removed: [] };
       await this.db.save(changeset);
 
-      this.emit('inserted', newRecord);
+      const transformed = this.transform(newRecord);
+
+      this.emit('inserted', transformed);
       this.emit('_debug.inserted', newRecord);
-      return newRecord;
+      return transformed;
     } catch (error) {
       this.emit('persistence.error', error as Error);
     }
@@ -57,9 +63,9 @@ export class Collection<T extends BaseRecord = BaseRecord> {
   registerRemoteChange = async (changes: Changeset<T>) => {
     try {
       await this.db.save(changes);
-      changes.added.forEach((item) => this.emit('inserted', item));
-      changes.modified.forEach((item) => this.emit('updated', item));
-      changes.removed.forEach((item) => this.emit('removed', item));
+      changes.added.forEach((item) => this.emit('inserted', this.transform(item)));
+      changes.modified.forEach((item) => this.emit('updated', this.transform(item)));
+      changes.removed.forEach((item) => this.emit('removed', this.transform(item)));
     } catch (error) {
       this.emit('persistence.error', error as Error);
     }
@@ -81,8 +87,11 @@ export class Collection<T extends BaseRecord = BaseRecord> {
       const changeset: Changeset<T> = { added: [], modified: [updatedRecord], removed: [] };
       await this.db.save(changeset);
 
-      this.emit('updated', updatedRecord);
+      const transformed = this.transform(updatedRecord);
+
+      this.emit('updated', transformed);
       this.emit('_debug.updated', updatedRecord);
+      return transformed;
     } catch (error) {
       this.emit('persistence.error', error as Error);
     }
@@ -96,7 +105,9 @@ export class Collection<T extends BaseRecord = BaseRecord> {
       const changeset: Changeset<T> = { added: [], modified: [], removed: [item] };
       await this.db.save(changeset);
 
-      this.emit('removed', item);
+      const transformed = this.transform(item);
+
+      this.emit('removed', transformed);
       this.emit('_debug.removed', item);
     } catch (error) {
       this.emit('persistence.error', error as Error);
@@ -105,10 +116,21 @@ export class Collection<T extends BaseRecord = BaseRecord> {
 
   async get(id: string): Promise<T | undefined> {
     try {
-      return this.db.getOne(id);
+      const record = await this.db.getOne(id);
+      return this.transform(record);
     } catch (error) {
       this.emit('persistence.error', error as Error);
     }
+  }
+
+  private transform(data: undefined): undefined;
+  private transform(data: T): T;
+  private transform(data: T | undefined): T | undefined;
+  private transform(data: T[]): T[];
+  private transform(data?: T | T[]): T | T[] | undefined {
+    if (!data) return;
+    if (Array.isArray(data)) return this.opts.transform ? data.map(this.opts.transform) : data;
+    return this.opts.transform ? this.opts.transform(data) : data;
   }
 
   private emit<K extends CollectionEvent>(event: K, data: CollectionEventData<T>[K]) {

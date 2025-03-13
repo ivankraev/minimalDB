@@ -1,3 +1,5 @@
+import { type PersistenceAdapterIndex } from './persistence.types';
+
 export type CollectionEvent =
   | Mutation
   | 'persistence.error'
@@ -35,3 +37,14 @@ export type BaseRecord = {
 };
 
 export type Mutation = 'inserted' | 'updated' | 'removed';
+
+export type Transform<T extends BaseRecord = BaseRecord, U = T> =
+  | ((doc: T) => U)
+  | null
+  | undefined;
+
+export type CollectionOptions<T extends BaseRecord = BaseRecord> = {
+  entity: string;
+  transform?: Transform<T>;
+  indexes?: PersistenceAdapterIndex[];
+};
