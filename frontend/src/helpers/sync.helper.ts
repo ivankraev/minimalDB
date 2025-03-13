@@ -53,8 +53,57 @@ export const resolveSyncConflicts = <T extends BaseRecord = BaseRecord>(
   localChanges: PendingChange<T>[],
   remoteChanges: Changeset<T>,
 ): Changeset<T> => {
-  console.log(localChanges, remoteChanges);
-  return { added: [], modified: [], removed: [] };
+  const resolvedChanges: Changeset<T> = { added: [], modified: [], removed: [] };
+
+  const remoteMap = new Map<string, T>();
+  remoteChanges.added.forEach((rec) => remoteMap.set(rec.id, rec));
+  remoteChanges.modified.forEach((rec) => remoteMap.set(rec.id, rec));
+
+  const remoteRemoved = new Set(remoteChanges.removed.map((rec) => rec.id));
+
+  for (const local of localChanges) {
+    const { id, updatedAt } = local.data;
+    const remoteRecord = remoteMap.get(id);
+
+    const localTimestamp = updatedAt ? new Date(updatedAt).getTime() : 0;
+    const remoteTimestamp = remoteRecord?.updatedAt
+      ? new Date(remoteRecord.updatedAt).getTime()
+      : 0;
+
+    switch (local.type) {
+      case 'inserted':
+        if (!remoteRecord && !remoteRemoved.has(id)) {
+          resolvedChanges.added.push(local.data);
+        }
+        break;
+
+      case 'updated':
+        if (remoteRecord) {
+          resolvedChanges.modified.push(
+            localTimestamp >= remoteTimestamp ? local.data : remoteRecord,
+          );
+        } else if (remoteRemoved.has(id)) {
+          if (localTimestamp > remoteTimestamp) {
+            resolvedChanges.added.push(local.data);
+          } else {
+            resolvedChanges.removed.push(local.data);
+          }
+        }
+        break;
+
+      case 'removed':
+        if (!remoteRemoved.has(id)) {
+          if (localTimestamp > remoteTimestamp) {
+            resolvedChanges.removed.push(local.data);
+          } else if (remoteRecord) {
+            resolvedChanges.modified.push(remoteRecord);
+          }
+        }
+        break;
+    }
+  }
+
+  return resolvedChanges;
 };
 
 export const isChangesetEmpty = <T extends BaseRecord = BaseRecord>(
