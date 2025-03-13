@@ -4,7 +4,7 @@ import { Collection } from './collection';
 import { type BaseRecord } from 'src/types/collection.types';
 import syncStore from 'src/stores/sync.store';
 import { Query } from 'mingo';
-import { type AnyObject } from 'mingo/types';
+import { type Selector } from 'src/types/selector.types';
 
 export const generateId = () => crypto.randomUUID();
 
@@ -67,7 +67,7 @@ export class BaseStore<T extends BaseRecord> {
     return this.collection.remove(id);
   }
 
-  async filterRecords(selector: AnyObject) {
+  filterRecords(selector: Selector<T>) {
     return computed(() => new Query(selector).find<T>(this.recordsRef.value).all());
   }
 

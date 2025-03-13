@@ -4,7 +4,7 @@ import userStore from './pages/user/user.store';
 import buildStore from './pages/build/build.store';
 
 const recordName = ref('');
-const users = computed(() => userStore.listRecords().value);
+const users = computed(() => userStore.filterRecords({ email: 'test@gmail.com' }).value);
 const builds = computed(() => buildStore.listRecords().value);
 
 const saveUser = async () => {
