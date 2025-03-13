@@ -87,6 +87,7 @@ export class SyncManager {
       type,
       data: record,
       time: timestamp(),
+      createdAt: new Date().toISOString(),
     };
 
     if (!prev) {
@@ -120,6 +121,7 @@ export class SyncManager {
     const { changes: remoteChanges } = await this.pullChanges(collectionName);
     const localChanges = await this.getPendingChanges(collectionName);
     const pushChanges = resolveSyncConflicts(localChanges, remoteChanges);
+    if (isChangesetEmpty(pushChanges)) return await this.takeSnapshot(collectionName);
     await this.pushChanges(collectionName, pushChanges);
     await this.clearPendingChanges(collectionName);
     await this.takeSnapshot(collectionName);
@@ -134,11 +136,13 @@ export class SyncManager {
     const prev = await this.getSnapshot(collectionName);
 
     if (!prev) {
-      return await this.snapshotsDB.save({
-        added: [{ name: collectionName, lastSync: timestamp(), id: generateId() }],
-        modified: [],
-        removed: [],
-      });
+      const newRecord = {
+        name: collectionName,
+        lastSync: timestamp(),
+        id: generateId(),
+        createdAt: new Date().toISOString(),
+      };
+      return await this.snapshotsDB.save({ added: [newRecord], modified: [], removed: [] });
     }
 
     await this.snapshotsDB.save({

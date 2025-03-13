@@ -35,10 +35,12 @@ export type PendingChange<T extends BaseRecord = BaseRecord> = {
   type: PendingChangeType;
   data: T;
   time: number;
+  createdAt: string;
 };
 
 export type Snapshot = {
   id: string;
   name: string;
   lastSync: number;
+  createdAt: string;
 };
