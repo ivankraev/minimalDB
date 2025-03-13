@@ -10,16 +10,12 @@ export class DBQuery<T> extends Query {
   }
 
   run(data: T[]): T[] {
-    try {
-      let query = this.find<T>(data);
+    let query = this.find<T>(data);
 
-      if (this.options.sort) query = query.sort(this.options.sort);
-      if (this.options.skip) query = query.skip(this.options.skip);
-      if (this.options.limit) query = query.limit(this.options.limit);
+    if (this.options.sort) query = query.sort(this.options.sort);
+    if (this.options.skip) query = query.skip(this.options.skip);
+    if (this.options.limit) query = query.limit(this.options.limit);
 
-      return query.all();
-    } catch (error) {
-      return [];
-    }
+    return query.all();
   }
 }
