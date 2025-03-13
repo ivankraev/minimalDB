@@ -5,33 +5,31 @@ export const mergeLocalChanges = (
   prev: PendingChange,
   next: PendingChange,
 ): Partial<PendingChange> => {
-  const prevType = prev.type;
-  const nextType = next.type;
+  switch (next.type) {
+    case 'removed':
+      if (prev.type === 'inserted') return { type: 'noop' };
+      if (prev.type === 'updated' || prev.type === 'removed')
+        return { type: 'removed', data: prev.data };
+      return { type: 'removed', data: next.data };
 
-  if (nextType === 'removed') {
-    if (prevType === 'inserted') return { type: 'noop' };
-    if (prevType === 'updated') return { type: 'removed', data: prev.data };
-    if (prevType === 'removed') return { type: 'removed', data: prev.data };
-    return { type: 'removed', data: next.data };
+    case 'updated':
+      if (prev.type === 'inserted' || prev.type === 'updated')
+        return { type: prev.type, data: { ...prev.data, ...next.data } };
+      if (prev.type === 'removed') return { type: 'inserted', data: next.data };
+      return { type: 'updated', data: next.data };
+
+    case 'inserted':
+      if (prev.type === 'inserted' || prev.type === 'updated')
+        return { type: 'inserted', data: { ...prev.data, ...next.data } };
+      if (prev.type === 'removed') return { type: 'inserted', data: next.data };
+      return { type: 'inserted', data: next.data };
+
+    case 'noop':
+      return { type: 'noop' };
+
+    default:
+      return { type: next.type, data: next.data };
   }
-
-  if (nextType === 'updated') {
-    if (prevType === 'inserted') return { type: 'inserted', data: { ...prev.data, ...next.data } };
-    if (prevType === 'updated') return { type: 'updated', data: { ...prev.data, ...next.data } };
-    if (prevType === 'removed') return { type: 'inserted', data: next.data };
-    return { type: 'updated', data: next.data };
-  }
-
-  if (nextType === 'inserted') {
-    if (prevType === 'inserted') return { type: 'inserted', data: { ...prev.data, ...next.data } };
-    if (prevType === 'updated') return { type: 'inserted', data: { ...prev.data, ...next.data } };
-    if (prevType === 'removed') return { type: 'inserted', data: next.data };
-    return { type: 'inserted', data: next.data };
-  }
-
-  if (nextType === 'noop') return { type: 'noop' };
-
-  return { type: nextType, data: next.data };
 };
 
 export const getFromChangeset = (
