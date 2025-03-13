@@ -8,8 +8,6 @@ import {
 import { createIndexDBAdapter } from './indexDB';
 import { type PersistenceAdapter } from 'src/types/persistence.types';
 import { generateId } from './store';
-import { Query } from 'mingo';
-import { type AnyObject } from 'mingo/types';
 
 export class Collection<T extends BaseRecord = BaseRecord> {
   private db: PersistenceAdapter<T>;
@@ -31,16 +29,6 @@ export class Collection<T extends BaseRecord = BaseRecord> {
   async getAll(): Promise<T[]> {
     try {
       return await this.db.getAll();
-    } catch (error) {
-      this.emit('persistence.error', error as Error);
-      return [];
-    }
-  }
-
-  async find(selector: AnyObject): Promise<T[]> {
-    try {
-      const allRecords = await this.getAll();
-      return new Query(selector).find<T>(allRecords).all();
     } catch (error) {
       this.emit('persistence.error', error as Error);
       return [];

@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 import { Collection } from './collection';
 import { type BaseRecord } from 'src/types/collection.types';
 import syncStore from 'src/stores/sync.store';
+import { Query } from 'mingo';
+import { type AnyObject } from 'mingo/types';
 
 export const generateId = () => crypto.randomUUID();
 
@@ -65,8 +67,8 @@ export class BaseStore<T extends BaseRecord> {
     return this.collection.remove(id);
   }
 
-  async filterRecords() {
-    return [];
+  async filterRecords(selector: AnyObject) {
+    return computed(() => new Query(selector).find<T>(this.recordsRef.value).all());
   }
 
   destroy() {
