@@ -43,11 +43,12 @@ export class SyncManager {
   }
 
   private setupSocket() {
-    socket.onAny((name: string) => {
+    socket.onAny((name: string, changes: Changeset) => {
       if (!name.startsWith('sync-')) return;
-      const collectionName = name.slice(5);
-      if (!collectionName) return;
-      this.pullChanges(collectionName);
+      const collection = this.collections.get(name.slice(5));
+      if (!collection) return;
+      // TODO: Detect if remote changes are from the same user - if yes, skip pull
+      if (!isChangesetEmpty(changes)) collection.registerRemoteChange(changes);
     });
   }
 

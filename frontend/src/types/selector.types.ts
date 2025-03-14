@@ -79,3 +79,7 @@ export type ReactiveReturnArray<T, O extends ReactiveOption> = O extends { react
 export type ReactiveReturn<T, O extends ReactiveOption> = O extends { reactive: false }
   ? T | undefined
   : ComputedRef<T | undefined>;
+
+export type ReactiveReturnNumber<O extends ReactiveOption> = O extends { reactive: false }
+  ? number
+  : ComputedRef<number>;

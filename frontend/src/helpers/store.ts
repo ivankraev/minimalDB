@@ -8,6 +8,7 @@ import {
   type FindOptions,
   type Selector,
   type ReactiveOption,
+  type ReactiveReturnNumber,
   type ReactiveReturn,
 } from 'src/types/selector.types';
 import { DBQuery } from './query';
@@ -74,6 +75,18 @@ export class BaseStore<T extends BaseRecord> {
     }
     // @ts-expect-error
     return computed(() => new DBQuery(selector, opts).run(this.recordsRef.value));
+  }
+
+  countRecords<O extends FindOptions<T>>(
+    selector: Selector<T> = {},
+    opts: O = {} as O,
+  ): ReactiveReturnNumber<O> {
+    if (opts?.reactive === false) {
+      // @ts-expect-error
+      return new DBQuery(selector).count(toRaw(this.recordsRef.value));
+    }
+    // @ts-expect-error
+    return computed(() => new DBQuery(selector).count(this.recordsRef.value));
   }
 
   getRecord<O extends ReactiveOption>(id?: string, options?: O): ReactiveReturn<T, O> {

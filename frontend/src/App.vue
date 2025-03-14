@@ -6,6 +6,7 @@ import buildStore from './pages/build/build.store';
 const record = ref({ name: '', roles: ['Guest'], email: '' });
 const users = computed(() => userStore.filterRecords({}, { sort: { name: -1 } }).value);
 const builds = computed(() => buildStore.listRecords().value);
+const usersCount = computed(() => userStore.countRecords().value);
 
 const saveUser = async () => {
   const noReactive = userStore.filterRecords({}, { reactive: false });
@@ -26,7 +27,7 @@ const removeUser = async (id: string) => {
     <q-card style="width: 500px">
       <q-card-section>
         <q-toolbar>
-          <q-toolbar-title>Users ({{ users.length }})</q-toolbar-title>
+          <q-toolbar-title>Users ({{ usersCount }})</q-toolbar-title>
         </q-toolbar>
         <q-list bordered v-if="users.length" separator>
           <q-item v-for="record in users" :key="record.id">
