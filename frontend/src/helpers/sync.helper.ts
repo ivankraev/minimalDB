@@ -63,7 +63,7 @@ export const resolveSyncConflicts = <T extends BaseRecord = BaseRecord>(
     const { id, updatedAt } = local.data;
     const remoteRecord = remoteMap.get(id);
 
-    const localTimestamp = updatedAt ? new Date(updatedAt).getTime() : 0;
+    const localTimestamp = local.time ?? (updatedAt ? new Date(updatedAt).getTime() : 0);
     const remoteTimestamp = remoteRecord?.updatedAt
       ? new Date(remoteRecord.updatedAt).getTime()
       : 0;
@@ -77,15 +77,13 @@ export const resolveSyncConflicts = <T extends BaseRecord = BaseRecord>(
 
       case 'updated':
         if (remoteRecord) {
-          resolvedChanges.modified.push(
-            localTimestamp >= remoteTimestamp ? local.data : remoteRecord,
-          );
-        } else if (remoteRemoved.has(id)) {
-          if (localTimestamp > remoteTimestamp) {
-            resolvedChanges.added.push(local.data);
+          if (localTimestamp >= remoteTimestamp) {
+            resolvedChanges.modified.push(local.data);
           } else {
-            resolvedChanges.removed.push(local.data);
+            resolvedChanges.modified.push(remoteRecord);
           }
+        } else {
+          resolvedChanges.modified.push(local.data);
         }
         break;
 

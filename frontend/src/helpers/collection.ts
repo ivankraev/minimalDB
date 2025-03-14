@@ -40,11 +40,13 @@ export class Collection<T extends BaseRecord = BaseRecord> {
   }
 
   async insert(record: Partial<T>) {
+    const timestamp = new Date().toISOString();
     try {
       const raw = {
         ...record,
         id: generateId(),
-        createdAt: new Date().toISOString(),
+        createdAt: timestamp,
+        updatedAt: timestamp,
       } as T;
 
       const changeset: Changeset<T> = { added: [raw], modified: [], removed: [] };
