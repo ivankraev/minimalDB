@@ -118,11 +118,12 @@ export class SyncManager {
   }
 
   async sync(collectionName: string): Promise<void> {
+    if (!navigator.onLine) return console.warn('Device is offline, skipping sync');
     const { changes: remoteChanges } = await this.pullChanges(collectionName);
     const localChanges = await this.getPendingChanges(collectionName);
     const pushChanges = resolveSyncConflicts(localChanges, remoteChanges);
     if (isChangesetEmpty(pushChanges)) return await this.takeSnapshot(collectionName);
-    await this.pushChanges(collectionName, pushChanges);
+    await this.pushFn({ name: collectionName }, { changes: pushChanges });
     await this.clearPendingChanges(collectionName);
     await this.takeSnapshot(collectionName);
   }
@@ -167,20 +168,5 @@ export class SyncManager {
     if (!isChangesetEmpty(response.changes)) collection.registerRemoteChange(response.changes);
 
     return response;
-  }
-
-  private async pushChanges(collectionName: string, changes: Changeset): Promise<void> {
-    if (!navigator.onLine) return;
-    const collection = this.collections.get(collectionName);
-    if (!collection) {
-      console.warn(`Collection '${collectionName}' is not registered.`);
-      return;
-    }
-
-    try {
-      await this.pushFn({ name: collectionName }, { changes });
-    } catch (error) {
-      console.error('Error pushing changes', error);
-    }
   }
 }
