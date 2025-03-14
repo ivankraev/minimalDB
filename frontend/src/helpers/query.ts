@@ -9,6 +9,10 @@ export class DBQuery<T> extends Query {
     this.options = options || {};
   }
 
+  count(data: T[]): number {
+    return this.find<T>(data).count();
+  }
+
   run(data: T[]): T[] {
     let query = this.find<T>(data);
 
