@@ -73,6 +73,7 @@ export class SyncManager {
     if (!navigator.onLine) return this.savePendingChange(collectionName, changeset);
     try {
       await this.pushFn({ name: collectionName }, { changes: changeset });
+      await this.takeSnapshot(collectionName);
     } catch (error) {
       await this.savePendingChange(collectionName, changeset);
     }
